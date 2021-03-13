@@ -7,14 +7,14 @@ introduced by padding the data to a uniform length is minimized.
 Two different data loaders were implemented: SimilarSizeSampler and BucketingSampler. Both are implemented for drawing with and without replacement 
 as well as with and without dropping the last batch (if its size is smaller than the batch size)
 
-##SimilarSizeSampler
+## SimilarSizeSampler
 The SimilarSizeSampler sorts the data samples by length first and then forms the batches, so that similar sized samples are always in the same batch
 
-##BucketingSampler
+## BucketingSampler
 The BucketingSampler draws a mega batch of data samplers, then sorts this mega batch by length and yields those indices. 
 
-##TestDataset
+## TestDataset
 I provided a simple TestDataset that creates tensors with random numbers that can be used to test the samplers.
 
-##Unittest
+## Unittest
 Prvoided in this repository are also a couple of short unit tests to ensure the samplers are working correctly.
