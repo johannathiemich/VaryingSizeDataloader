@@ -1,9 +1,12 @@
 # VaryingSizeDataloader
 
 Practical course "Data Management and Data Analysis" at Karlsruhe Institute of Technology during the Winter Semester 2020/21.
+
 Supervisor: James Kahn
+
 The goal was to implement two samplers that are able to deal with data of varying sizes, arranging them in batches so that the overhead
 introduced by padding the data to a uniform length is minimized.
+
 Two different data loaders were implemented: SimilarSizeSampler and BucketingSampler. Both are implemented for drawing with and without replacement 
 as well as with and without dropping the last batch (if its size is smaller than the batch size)
 
