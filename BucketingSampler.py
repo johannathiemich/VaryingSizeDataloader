@@ -13,9 +13,22 @@ from baumbauen.utils import pad_collate_fn
 import copy
 from torch.utils.data.sampler import BatchSampler
 
+
 class BucketingSampler(Sampler):
+    """
+    The BucketingSampler draws a mega batch of data samplers, then sorts this mega batch by length and yields those indices.
+    """
     #small parts from https://github.com/shenkev/Pytorch-Sequence-Bucket-Iterator/blob/master/torch_sampler.py
     def __init__(self, data_source, batch_size = 64, drop_last = False, num_bins=5, replacement=False):
+        """
+        Initializing a SimilarSizeSampler object
+        data_source: data to draw samples from
+        replacement: whether to draw the samples with or without replacement
+        batch_size: number of batches to group together
+        drop_last: whether to drop the last batch (that potentially has a smaller batch size than the rest
+                    of the batches when len(data_source) % batch_size != 0
+        num_bins: number of bins to draw from data; the total number of samples in a mega batch will be num_bins*batch_size 
+        """
         self.data_source = [item[0] for item in data_source]
         self.ind_len_arr = [(i, item.shape[0]) for i, item in enumerate(self.data_source)]
 
@@ -28,6 +41,9 @@ class BucketingSampler(Sampler):
             print("WARNING: drop_last=True, dropping last non batch-size batch in every bucket ... ")
 
     def __iter__(self):
+        """
+        This function returns the indices (one after another) that will be used by the BatchSampler in order to create the DataLoader
+        """
         iter_list = []
         ind_len_copy = copy.deepcopy(self.ind_len_arr)
 
@@ -80,6 +96,7 @@ class BucketingSampler(Sampler):
                     iter_list.append(rest_batch)
                     ind_len_copy = []
                 else:
+                    #draw a mega batch and sort it 
                     samples = random.sample(ind_len_copy, k=self.num_bins*self.batch_size)
                     for s in samples:
                         ind_len_copy.remove(s)
@@ -87,7 +104,9 @@ class BucketingSampler(Sampler):
                     samples.sort(key=operator.itemgetter(1))
 
                     for i in range(self.num_bins):
+                        #create smaller batches from mega batch
                         new_batch = [item[0] for item in samples[(i * self.batch_size) : (i + 1) * self.batch_size]]
+                        #shuffle the samples inside each mini batch
                         random.shuffle(new_batch)
                         assert len(new_batch) == self.batch_size
                         iter_list.append(new_batch)
@@ -102,6 +121,10 @@ class BucketingSampler(Sampler):
                 yield i
 
     def __len__(self):
+        """
+        This function returns the number of indices that will be returned. 
+        The result depends on the length of the data source, the batch size and whether the last batch will be dropped or not
+        """
         if self.drop_last:
             num_elem = len(self.data_source) - (len(self.data_source) % self.batch_size)
             return len(self.data_source) - (len(self.data_source) % self.batch_size)
