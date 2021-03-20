@@ -13,8 +13,21 @@ from baumbauen.utils import pad_collate_fn
 import copy
 from torch.utils.data.sampler import BatchSampler
 
+
 class SimilarSizeSampler(Sampler):
+    """
+    The SimilarSizeSampler sorts the data samples by length first and then forms the batches, so that similar sized samples are always in the same batch
+    """
+    
     def __init__(self, data_source, replacement=False, batch_size=64, drop_last=False):
+        """
+        Initializing a SimilarSizeSampler object
+        data_source: data to draw samples from
+        replacement: whether to draw the samples with or without replacement
+        batch_size: number of batches to group together
+        drop_last: whether to drop the last batch (that potentially has a smaller batch size than the rest
+                    of the batches when len(data_source) % batch_size != 0
+        """
         #data source shape is (N, L, C)
         self.data_source = [item[0] for item in data_source]
 
@@ -28,7 +41,7 @@ class SimilarSizeSampler(Sampler):
         self.ind_len_arr = [(i, item.shape[0]) for i, item in enumerate(self.data_source)]
 
         # create probability distribution function
-        #max_len = max([item[1] for item in self.ind_len_arr])
+        # this probability distribution is only necessary for the sampler with replacement
         if self.replacement:
             max_len = 60
             self.pdf = [0] * (max_len + 1)
@@ -54,6 +67,10 @@ class SimilarSizeSampler(Sampler):
             self.distr = Categorical(torch.tensor(self.pdf))
 
     def __iter__(self):
+        """
+        This function returns the indices (one after another) that will be used by the BatchSampler in order to create the DataLoader
+        """
+        
         iter_list = []
 
         if self.replacement:
@@ -104,8 +121,9 @@ class SimilarSizeSampler(Sampler):
                 random.shuffle(new_batch)
                 iter_list.append(new_batch)
 
-            assert [len(item) == self.batch_size for item in iter_list]
+            #assert [len(item) == self.batch_size for item in iter_list]
 
+        #checking whether to drop the last batch or not
         if len(iter_list[-1]) != self.batch_size and self.drop_last:
             iter_list = iter_list[:-1]
 
@@ -118,6 +136,11 @@ class SimilarSizeSampler(Sampler):
                 yield it
 
     def __len__(self):
+        """
+        This function returns the number of indices that will be returned. 
+        The result depends on the length of the data source, the batch size and whether the last batch will be dropped or not
+        """
+  
         if self.drop_last:
             num_elem = len(self.data_source) - (len(self.data_source) % self.batch_size)
             return len(self.data_source) - (len(self.data_source) % self.batch_size)
